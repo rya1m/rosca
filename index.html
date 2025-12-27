@@ -2,104 +2,160 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo MiniApp</title>
-    <script src="https://cdn.marmot-cloud.com/npm/hylid-bridge/2.10.0/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo MiniApp</title>
+  <script src="https://cdn.marmot-cloud.com/npm/hylid-bridge/2.10.0/index.js"></script>
 
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #f9f9f9;
+    }
 
+    .header {
+      height: 64px;
+      width: 100%;
+      background-color: #444;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding-left: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 10;
+    }
+
+    .container {
+      padding: 20px;
+      padding-top: 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .btn-blue {
+      background-color: #1d4ed8;
+    }
+
+    .btn-green {
+      background-color: #059669;
+    }
+
+    p {
+      font-size: 14px;
+      color: #555;
+    }
+
+    span {
+      font-weight: bold;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="h-16 w-full bg-stone-700 flex items-center justify-start px-4 fixed top-0 left-0 z-10">
-        <h1 class="text-2xl font-bold text-white">Demo MiniApp</h1>
-    </div>
+  <div class="header">
+    <h1>Demo MiniApp</h1>
+  </div>
 
-    <div class="w-full h-screen flex flex-col items-center gap-4 justify-start p-4 mt-16">
-        <button class="bg-blue-500 text-white px-4 py-2 rounded-md" onclick="authenticate()">Login</button>
-        <button class="bg-blue-500 text-white px-4 py-2 rounded-md" onclick="pay()">Pay</button>
+  <div class="container">
+    <button class="btn-blue" onclick="authenticate()">Login</button>
+    <button class="btn-blue" onclick="pay()">Pay</button>
+    <button class="btn-green" onclick="scan()">Scan QR</button>
 
+    <p>Auth Code: <span id="authCode"></span></p>
+    <p>QR Result: <span id="qrResult"></span></p>
+  </div>
 
-        <p class="text-sm text-gray-500">Auth Code: <span id="authCode"></span></p>
-    </div>
+  <script>
+    var authCode = '';
+    var token = '';
 
-    <script>
-        var authCode = '';
-        var token = '';
+    function authenticate() {
+      my.getAuthCode({
+        scopes: ['auth_base', 'USER_ID'],
+        success: (res) => {
+          authCode = res.authCode;
+          document.getElementById('authCode').textContent = authCode;
 
-        function authenticate() {
-            my.getAuthCode({
-                scopes: ['auth_base', 'USER_ID'],
-                success: (res) => {
-                    authCode = res.authCode;
-                    document.getElementById('authCode').textContent = authCode;
-
-                    fetch('https://its.mouamle.space/api/auth-with-superQi', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            token: authCode
-                        })
-                    }).then(res => res.json()).then(data => {
-                        token = data.token;
-                        my.alert({
-                            content: "Login successful",
-                        });
-                    }).catch(err => {
-                        let errorDetails = '';
-                        if (err && typeof err === 'object') {
-                            errorDetails = JSON.stringify(err, null, 2);
-                        } else {
-                            errorDetails = String(err);
-                        }
-                        my.alert({
-                            content: "Error: " + errorDetails,
-                        });
-                    });
-                },
-                fail: (res) => {
-                    console.log(res.authErrorScopes)
-                },
+          fetch('https://its.mouamle.space/api/auth-with-superQi', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              token: authCode
+            })
+          }).then(res => res.json()).then(data => {
+            token = data.token;
+            my.alert({
+              content: "Login successful",
             });
-
-        }
-
-        function pay() {
-            fetch('https://its.mouamle.space/api/payment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
-                },
-            }).then(res => res.json()).then(data => {
-                my.tradePay({
-                    paymentUrl: data.url,
-                    success: (res) => {
-                        my.alert({
-                            content: "Payment successful",
-                        });
-                    },
-                });
-            }).catch(err => {
-                my.alert({
-                    content: "Payment failed",
-                });
+          }).catch(err => {
+            my.alert({
+              content: "Login failed",
             });
+          });
+        },
+        fail: (res) => {
+          console.log(res.authErrorScopes)
+        },
+      });
+    }
+
+    function pay() {
+      fetch('https://its.mouamle.space/api/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+      }).then(res => res.json()).then(data => {
+        my.tradePay({
+          paymentUrl: data.url,
+          success: (res) => {
+            my.alert({
+              content: "Payment successful",
+            });
+          },
+        });
+      }).catch(err => {
+        my.alert({
+          content: "Payment failed",
+        });
+      });
+    }
+
+    function scan() {
+      my.scan({
+        type: 'qr',
+        success: function (res) {
+          document.getElementById('qrResult').textContent = res.code;
+          my.alert({
+            title: "QR Result",
+            content: res.code,
+          });
+        },
+        fail: function (err) {
+          my.alert({
+            content: "QR Scan failed",
+          });
         }
-
-        function copyAuthCode() {
-            navigator.clipboard.writeText(authCode);
-        }
-        function scan(){
-
-
-
-            
-        }
-    </script>
+      });
+    }
+  </script>
 </body>
 
 </html>
