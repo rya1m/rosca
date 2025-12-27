@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const QRScannerButton = () => {
@@ -28,7 +28,7 @@ const QRScannerButton = () => {
           qrScanner.stop(); // stop camera
           setScanning(false);
         },
-        (errorMessage) => {
+        (_) => {
           // Ignore scan errors
         }
       );
